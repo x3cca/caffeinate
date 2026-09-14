@@ -114,7 +114,7 @@ jobs:
           <title>Caffeinate Fedora repository</title>
           <h1>Caffeinate Fedora repository</h1>
           <p>A signed DNF repository for the Caffeinate GNOME Shell extension.</p>
-          <pre>sudo dnf config-manager addrepo --from-repofile=https://x3cca.github.io/caffeinate/caffeinate.repo
+          <pre>sudo dnf config-manager addrepo --from-repofile=https://x3c.ca/caffeinate/caffeinate.repo
           sudo dnf install gnome-shell-extension-caffeinate</pre>
           <p><a href="https://github.com/x3cca/caffeinate">Source and documentation</a></p>
           HTML

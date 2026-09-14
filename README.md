@@ -17,7 +17,7 @@ extensions.gnome.org or COPR account.
 
 ```sh
 sudo dnf config-manager addrepo \
-  --from-repofile=https://x3cca.github.io/caffeinate/caffeinate.repo
+  --from-repofile=https://x3c.ca/caffeinate/caffeinate.repo
 sudo dnf install gnome-shell-extension-caffeinate
 systemctl --user enable --now caffeinate-watch.service
 ```
