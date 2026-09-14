@@ -54,7 +54,6 @@ jobs:
           make lint
           bash -n install.sh watcher/caffeinate-watch
           glib-compile-schemas --strict --dry-run caffeine@patapon.info/schemas
-          git diff --check
 
       - name: Build extension archive and RPM
         env:
@@ -65,8 +64,12 @@ jobs:
           make clean build
           rpm_root="${HOME}/rpmbuild"
           mkdir -p "${rpm_root}"/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
-          git archive --prefix="caffeinate-${VERSION}/" HEAD |
-              gzip -9 > "${rpm_root}/SOURCES/caffeinate-${VERSION}.tar.gz"
+          tar \
+              --exclude=.git \
+              --exclude=node_modules \
+              --exclude='*.zip' \
+              --transform="s,^,caffeinate-${VERSION}/," \
+              -czf "${rpm_root}/SOURCES/caffeinate-${VERSION}.tar.gz" .
           cp packaging/caffeinate.spec "${rpm_root}/SPECS/"
           rpmbuild -ba \
               --define "_topdir ${rpm_root}" \
