@@ -1,0 +1,153 @@
+name: Build and publish Fedora repository
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: fedora:44
+
+    steps:
+      - name: Install build tools
+        run: >-
+          dnf install -y
+          createrepo_c gettext git glib2 gnome-shell gnupg2 make npm
+          rpm-build rpm-sign systemd-rpm-macros
+
+      - name: Check out source
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Resolve and validate version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(<VERSION)
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+              tag_version="${GITHUB_REF_NAME#v}"
+              [[ "${tag_version}" == "${version}" ]] || {
+                  echo "Tag ${tag_version} does not match VERSION ${version}" >&2
+                  exit 1
+              }
+          fi
+          [[ "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          printf 'version=%s\n' "${version}" >> "${GITHUB_OUTPUT}"
+
+      - name: Lint and test
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --no-package-lock --ignore-scripts
+          make lint
+          bash -n install.sh watcher/caffeinate-watch
+          glib-compile-schemas --strict --dry-run caffeine@patapon.info/schemas
+          git diff --check
+
+      - name: Build extension archive and RPM
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          make clean build
+          rpm_root="${HOME}/rpmbuild"
+          mkdir -p "${rpm_root}"/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
+          git archive --prefix="caffeinate-${VERSION}/" HEAD |
+              gzip -9 > "${rpm_root}/SOURCES/caffeinate-${VERSION}.tar.gz"
+          cp packaging/caffeinate.spec "${rpm_root}/SPECS/"
+          rpmbuild -ba \
+              --define "_topdir ${rpm_root}" \
+              --define "caffeinate_version ${VERSION}" \
+              "${rpm_root}/SPECS/caffeinate.spec"
+
+      - name: Sign packages and create repository
+        env:
+          RPM_SIGNING_KEY: ${{ secrets.RPM_SIGNING_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s' "${RPM_SIGNING_KEY}" > "${RUNNER_TEMP}/rpm-signing-key.asc"
+          gpg --batch --import "${RUNNER_TEMP}/rpm-signing-key.asc"
+          key_id=$(gpg --batch --with-colons --list-secret-keys |
+              awk -F: '$1 == "sec" {print $5; exit}')
+          [[ -n "${key_id}" ]]
+          printf '%%_signature gpg\n%%_gpg_name %s\n' "${key_id}" > "${HOME}/.rpmmacros"
+
+          find "${HOME}/rpmbuild/RPMS" "${HOME}/rpmbuild/SRPMS" \
+              -type f -name '*.rpm' -exec rpmsign --addsign {} \;
+
+          mkdir -p dist public/rpm
+          cp "${HOME}"/rpmbuild/RPMS/noarch/*.rpm dist/
+          cp "${HOME}"/rpmbuild/SRPMS/*.src.rpm dist/
+          cp caffeinate@x3cca.github.com.zip dist/
+          cp dist/*.noarch.rpm public/rpm/
+          cp packaging/RPM-GPG-KEY-caffeinate public/
+          cp packaging/caffeinate.repo public/
+          createrepo_c public/rpm
+          gpg --batch --yes --armor --detach-sign --local-user "${key_id}" \
+              public/rpm/repodata/repomd.xml
+          (cd dist && sha256sum * > SHA256SUMS)
+          touch public/.nojekyll
+
+      - name: Create repository landing page
+        shell: bash
+        run: |
+          cat > public/index.html <<'HTML'
+          <!doctype html>
+          <meta charset="utf-8">
+          <title>Caffeinate Fedora repository</title>
+          <h1>Caffeinate Fedora repository</h1>
+          <p>A signed DNF repository for the Caffeinate GNOME Shell extension.</p>
+          <pre>sudo dnf config-manager addrepo --from-repofile=https://x3cca.github.io/caffeinate/caffeinate.repo
+          sudo dnf install gnome-shell-extension-caffeinate</pre>
+          <p><a href="https://github.com/x3cca/caffeinate">Source and documentation</a></p>
+          HTML
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: caffeinate-packages-${{ steps.version.outputs.version }}
+          path: dist/
+
+      - name: Publish GitHub Release assets
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1 ||
+              gh release create "${GITHUB_REF_NAME}" --generate-notes --title "Caffeinate ${GITHUB_REF_NAME#v}"
+          gh release upload "${GITHUB_REF_NAME}" dist/* --clobber
+
+      - name: Upload GitHub Pages artifact
+        if: github.ref_type == 'tag'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: public/
+
+  deploy:
+    if: github.ref_type == 'tag'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy signed DNF repository
+        id: deployment
+        uses: actions/deploy-pages@v4

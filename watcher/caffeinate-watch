@@ -4,21 +4,38 @@ set -u
 umask 077
 
 readonly SCHEMA="org.gnome.shell.extensions.caffeine"
-readonly SCHEMA_DIR="${HOME}/.local/share/gnome-shell/extensions/caffeinate@x3cca.github.com/schemas"
 readonly T3_STATE_DB="${HOME}/.t3/userdata/state.sqlite"
 readonly POLL_SECONDS=3
 readonly UNKNOWN_GRACE_SECONDS=60
 
 inhibitor_pid=0
+schema_dir=""
+
+find_schema_dir() {
+    local candidate
+
+    for candidate in \
+        "${HOME}/.local/share/gnome-shell/extensions/caffeinate@x3cca.github.com/schemas" \
+        "/usr/share/gnome-shell/extensions/caffeinate@x3cca.github.com/schemas"; do
+        if [[ -f "${candidate}/gschemas.compiled" ]]; then
+            schema_dir="${candidate}"
+            return 0
+        fi
+    done
+
+    schema_dir=""
+    return 1
+}
 
 caffeinate_available() {
-    [[ -f "${SCHEMA_DIR}/gschemas.compiled" ]] &&
-        GSETTINGS_SCHEMA_DIR="${SCHEMA_DIR}" \
+    find_schema_dir &&
+        GSETTINGS_SCHEMA_DIR="${schema_dir}" \
             gsettings writable "${SCHEMA}" agent-enabled >/dev/null 2>&1
 }
 
 set_agent_state() {
-    GSETTINGS_SCHEMA_DIR="${SCHEMA_DIR}" \
+    [[ -n "${schema_dir}" ]] || find_schema_dir || return 1
+    GSETTINGS_SCHEMA_DIR="${schema_dir}" \
         gsettings set "${SCHEMA}" agent-enabled "$1" >/dev/null 2>&1
 }
 

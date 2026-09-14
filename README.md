@@ -9,20 +9,39 @@ It also includes an optional user service that watches for active local Codex CL
 or T3 Code agent turns. Agent activity is tracked as its own inhibition reason,
 so it does not overwrite your manual coffee-toggle state.
 
-## Install
+## Install from the signed Fedora repository
 
-Requirements: GNOME Shell 45–51, systemd-logind, Bash, Python 3, and `make`.
+This is the recommended installation on Fedora. It updates the extension and
+watcher together through normal DNF transactions, without an
+extensions.gnome.org or COPR account.
 
 ```sh
-git clone https://github.com/x3cca/caffeinate.git
-cd caffeinate
-./install.sh
+sudo dnf config-manager addrepo \
+  --from-repofile=https://x3cca.github.io/caffeinate/caffeinate.repo
+sudo dnf install gnome-shell-extension-caffeinate
+systemctl --user enable --now caffeinate-watch.service
 ```
 
-The installer disables the separate Caffeine and Ignore Lid extensions after
-Caffeinate has been installed. A newly installed extension may require signing
-out and back in before GNOME discovers it; the watcher holds a direct fallback
-inhibitor until then, and whenever the extension is unavailable.
+Updates then arrive with the rest of the system through `dnf upgrade` or GNOME
+Software. GNOME Shell may require one sign-out after extension code changes.
+
+For development installs from a checkout, run `./install.sh`. The local installer
+disables the separate Caffeine and Ignore Lid extensions and installs into the
+current user's home directory.
+
+## Releases
+
+Set `VERSION` and `version-name` in `metadata.json` to the same semantic version,
+commit the change, and push a matching tag such as `v0.2.0`. GitHub Actions then:
+
+1. lints and tests the extension and watcher;
+2. builds and signs the binary and source RPMs;
+3. creates the GitHub Release with checksums and extension ZIP;
+4. publishes signed DNF metadata to GitHub Pages.
+
+The signing public key is committed under `packaging/`; the private key exists
+only in the `RPM_SIGNING_KEY` GitHub Actions secret and the maintainer's protected
+local keyring.
 
 ## Updating from Caffeine
 
