@@ -102,7 +102,7 @@ jobs:
           createrepo_c public/rpm
           gpg --batch --yes --armor --detach-sign --local-user "${key_id}" \
               public/rpm/repodata/repomd.xml
-          (cd dist && sha256sum * > SHA256SUMS)
+          (cd dist && sha256sum *.zip *.rpm > SHA256SUMS)
           touch public/.nojekyll
 
       - name: Create repository landing page
