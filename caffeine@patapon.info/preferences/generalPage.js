@@ -73,7 +73,7 @@ class CaffeineGeneralPage extends Adw.PreferencesPage {
         pauseNightLight.append(_('For apps on list'));
         const pauseNightLightRow = new Adw.ComboRow({
             title: _('Pause and resume Night Light'),
-            subtitle: _('Toggles the night light together with Caffeine\'s state'),
+            subtitle: _('Toggles the night light together with Caffeinate\'s state'),
             model: pauseNightLight,
             selected: this._settings.get_enum(this._settingsKey.NIGHT_LIGHT)
         });
@@ -85,7 +85,7 @@ class CaffeineGeneralPage extends Adw.PreferencesPage {
         allowBlankScreen.append(_('For apps on list'));
         const allowBlankScreenRow = new Adw.ComboRow({
             title: _('Allow screen blank'),
-            subtitle: _('Allow turning off screen when Caffeine is enabled\n' +
+            subtitle: _('Allow turning off screen when Caffeinate is enabled\n' +
                         'This may disable manual suspend / shutdown'),
             model: allowBlankScreen,
             selected: this._settings.get_enum(this._settingsKey.SCREEN_BLANK)

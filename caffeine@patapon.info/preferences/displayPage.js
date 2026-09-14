@@ -50,7 +50,7 @@ class CaffeineDisplayPage extends Adw.PreferencesPage {
         showStatusIndicator.append(_('Never'));
         const showStatusIndicatorRow = new Adw.ComboRow({
             title: _('Show status indicator in top panel'),
-            subtitle: _('Enable or disable the Caffeine icon in the top panel'),
+            subtitle: _('Enable or disable the Caffeinate icon in the top panel'),
             model: showStatusIndicator,
             selected: this._settings.get_enum(this._settingsKey.SHOW_INDICATOR)
         });
@@ -72,7 +72,7 @@ class CaffeineDisplayPage extends Adw.PreferencesPage {
         // Notifications
         const notificationRow = new Adw.SwitchRow({
             title: _('Notifications'),
-            subtitle: _('Enable notifications when Caffeine is enabled or disabled'),
+            subtitle: _('Enable notifications when Caffeinate is enabled or disabled'),
             active: this._settings.get_boolean(this._settingsKey.SHOW_NOTIFICATIONS)
         });
 

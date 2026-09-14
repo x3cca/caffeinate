@@ -492,7 +492,7 @@ const CaffeineToggle = GObject.registerClass({
 }, class CaffeineToggle extends QuickSettings.QuickMenuToggle {
     _init(Me) {
         super._init({
-            'title': _('Caffeine'),
+            'title': _('Caffeinate'),
             toggleMode: false
         });
 
@@ -517,7 +517,7 @@ const CaffeineToggle = GObject.registerClass({
         this.updateIcon();
 
         // Set up entry
-        this.menu.setHeader(this.finalTimerMenuIcon, _('Caffeine Timer'), null);
+        this.menu.setHeader(this.finalTimerMenuIcon, _('Caffeinate Timer'), null);
 
         // Add elements
         this._itemsSection = new PopupMenu.PopupMenuSection();
@@ -927,7 +927,7 @@ class Caffeine extends QuickSettings.SystemIndicator {
     _updateLabelTimer(text) {
         this._timerLabel.text = text;
         this._caffeineToggle.menu.setHeader(this._caffeineToggle.finalTimerMenuIcon,
-            _('Caffeine Timer'), text);
+            _('Caffeinate Timer'), text);
         this._caffeineToggle.subtitle = text;
     }
 
@@ -1015,10 +1015,10 @@ class Caffeine extends QuickSettings.SystemIndicator {
     }
 
     _sendOSDNotification(state) {
-        let message = _('Caffeine enabled');
+        let message = _('Caffeinate enabled');
         let icon = this._iconActivated;
         if (!state) {
-            message = _('Caffeine disabled');
+            message = _('Caffeinate disabled');
             icon = this._iconDeactivated;
         }
 

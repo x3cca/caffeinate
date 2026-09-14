@@ -59,8 +59,8 @@ class CaffeineAppsPage extends Adw.PreferencesPage {
         appsTriggerMode.append(_('Focus'));
         appsTriggerMode.append(_('Active workspace'));
         const appsTriggerModeRow = new Adw.ComboRow({
-            title: _('Apps trigger Caffeine mode'),
-            subtitle: _('Choose the way apps will trigger Caffeine'),
+            title: _('Apps trigger Caffeinate mode'),
+            subtitle: _('Choose the way apps will trigger Caffeinate'),
             model: appsTriggerMode,
             selected: this._settings.get_enum(this._settingsKey.TRIGGER_APPS_MODE)
         });
@@ -78,7 +78,7 @@ class CaffeineAppsPage extends Adw.PreferencesPage {
             })
         });
         this.appsGroup = new Adw.PreferencesGroup({
-            title: _('Apps that trigger Caffeine'),
+            title: _('Apps that trigger Caffeinate'),
             header_suffix: addAppsButton
         });
 
