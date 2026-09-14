@@ -53,6 +53,10 @@ git fetch upstream
 git merge upstream/master
 ```
 
+Scheduled maintainers should follow [`AGENTS.md`](AGENTS.md). It defines the
+test, version, tag, and workflow-verification steps that turn a tested upstream
+merge into a signed package update.
+
 The integration is intentionally small: a separate `lidInhibitor.js` module,
 a few hooks in `extension.js`, one schema key for the watcher, and packaging
 metadata. This keeps upstream merges predictable.
