@@ -28,6 +28,7 @@ import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
 
 import { Extension, gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
+import { LidInhibitor } from './lidInhibitor.js';
 import { MprisPlayer } from './mprisMediaPlayer2.js';
 import { PopupAnimation } from 'resource:///org/gnome/shell/ui/boxpointer.js';
 
@@ -57,6 +58,7 @@ const INDICATOR_POSITION = 'indicator-position';
 const INDICATOR_INDEX = 'indicator-position-index';
 const INDICATOR_POS_MAX = 'indicator-position-max';
 const CLI_TOGGLE_KEY = 'cli-toggle';
+const AGENT_ENABLED_KEY = 'agent-enabled';
 
 const ColorInterface = '<node> \
   <interface name="org.gnome.SettingsDaemon.Color"> \
@@ -163,6 +165,8 @@ const InhibitorManager = GObject.registerClass({
             `changed::${NIGHT_LIGHT_KEY}`,
             () => this._updateState(),
             `changed::${INHIBIT_APPS_KEY}`,
+            () => this._updateState(),
+            `changed::${AGENT_ENABLED_KEY}`,
             () => this._updateState(),
             `changed::${TRIGGER_APPS_MODE}`,
             () => {
@@ -289,6 +293,10 @@ const InhibitorManager = GObject.registerClass({
 
         if (this._userEnabled) {
             reasons.push('user');
+        }
+
+        if (this._settings.get_boolean(AGENT_ENABLED_KEY)) {
+            reasons.push('agent');
         }
 
         // Find any selected apps that meet the trigger
@@ -638,6 +646,7 @@ class Caffeine extends QuickSettings.SystemIndicator {
         this._indicator = this._addIndicator();
         this._settings = Me._settings;
         this._state = false;
+        this._lidInhibitor = new LidInhibitor();
 
         // Add indicator label for the timer
         this._timerLabel = new St.Label({
@@ -736,6 +745,7 @@ class Caffeine extends QuickSettings.SystemIndicator {
         // Setup inhibitor manager
         this._inhibitorManager = new InhibitorManager(this._settings);
         this._inhibitorManager.connectObject('update', () => this._inhibitorUpdated(), this);
+        this._inhibitorUpdated();
 
         // Set manager user state and restore user state, if required
         if (this._settings.get_boolean(USER_ENABLED_KEY) &&
@@ -971,6 +981,7 @@ class Caffeine extends QuickSettings.SystemIndicator {
         // Update the tracked state
         const oldState = this._state;
         this._state = this._inhibitorManager.getInhibitState();
+        this._lidInhibitor.setActive(this._state);
 
         // Sync command state
         this._settings.set_boolean(CLI_TOGGLE_KEY, this._state);
@@ -1090,6 +1101,8 @@ class Caffeine extends QuickSettings.SystemIndicator {
         }
 
         MprisPlayer.Destroy();
+        this._lidInhibitor.destroy();
+        this._lidInhibitor = null;
         this._inhibitorManager.destroy();
         this._inhibitorManager = null;
 

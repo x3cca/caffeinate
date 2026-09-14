@@ -1,0 +1,15 @@
+[Unit]
+Description=Keep Caffeinate active while local agent turns run
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/libexec/caffeinate-watch
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=graphical-session.target

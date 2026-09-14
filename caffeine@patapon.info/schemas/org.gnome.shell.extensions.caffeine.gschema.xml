@@ -126,5 +126,10 @@
       <default>false</default>
       <summary>Command line key to toggle state</summary>
     </key>
+    <key type="b" name="agent-enabled">
+      <default>false</default>
+      <summary>Enable Caffeinate while a local agent turn is active</summary>
+      <description>Managed by the optional Caffeinate user-session watcher.</description>
+    </key>
   </schema>
 </schemalist>

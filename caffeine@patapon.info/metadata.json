@@ -3,12 +3,12 @@
   "shell-version": [
     "45", "46", "47", "48", "49", "50", "51"
   ],
-  "uuid": "caffeine@patapon.info",
-  "name": "Caffeine",
+  "uuid": "caffeinate@x3cca.github.com",
+  "name": "Caffeinate",
   "settings-schema": "org.gnome.shell.extensions.caffeine",
   "gettext-domain": "gnome-shell-extension-caffeine",
-  "description": "Disable the screensaver and auto suspend",
-  "url": "https://github.com/eonpatapon/gnome-shell-extension-caffeine",
+  "description": "Disable the screensaver, auto suspend, and lid switch from one coffee toggle",
+  "url": "https://github.com/x3cca/caffeinate",
   "donations": {
     "paypal": ["eonpatapon", "stuartahayhurst", "pakaoraki"]
   },

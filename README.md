@@ -1,70 +1,44 @@
-# gnome-shell-extension-caffeine
+# Caffeinate
 
-[<img src="https://github.com/eonpatapon/gnome-shell-extension-caffeine/raw/master/resources/get_it_on_gnome_extensions.png" height="100" align="right">](https://extensions.gnome.org/extension/517/caffeine/)
+Caffeinate combines [Caffeine](https://github.com/eonpatapon/gnome-shell-extension-caffeine)
+with the lid-switch inhibitor pattern from
+[Ignore Lid](https://github.com/mfloto/ignore-lid). One coffee toggle now prevents
+screen blanking, automatic suspend, and suspend on lid close.
 
-[![License](https://img.shields.io/github/license/eonpatapon/gnome-shell-extension-caffeine)](https://github.com/eonpatapon/gnome-shell-extension-caffeine/blob/master/LICENSE)
-[![GitHub release (latest by date)](https://img.shields.io/github/v/tag/eonpatapon/gnome-shell-extension-caffeine)](https://github.com/eonpatapon/gnome-shell-extension-caffeine/releases/latest)
+It also includes an optional user service that watches for active local Codex CLI
+or T3 Code agent turns. Agent activity is tracked as its own inhibition reason,
+so it does not overwrite your manual coffee-toggle state.
 
-Enable / disable auto suspend with quick setting toggle.
+## Install
 
-![Quick Toggle Caffeine](screenshots/screenshot.png)
+Requirements: GNOME Shell 45–51, systemd-logind, Bash, Python 3, and `make`.
 
-## Version
-
-This extension supports GNOME Shell `3.4` -> `50`
-
-|Branch                   |Version|Compatible GNOME version|
-|-------------------------|:-----:|------------------------|
-| master                  |    59 | GNOME 45 -> 50         |
-| gnome-shell-43-44       |    51 | GNOME 43 -> 44         |
-| gnome-shell-40-42       |    42 | GNOME 40 -> 42         |
-| gnome-shell-3.36-3.38   |    37 | GNOME 3.36 -> 3.38     |
-| gnome-shell-3.32-3.34   |    33 | GNOME 3.32 -> 3.34     |
-| gnome-shell-3.10-3.30   |     - | GNOME 3.10 -> 3.30     |
-| gnome-shell-before-3.10 |     - | GNOME 3.4 -> 3.8       |
-
-## Installation from source
-
-```bash
-make build
-make install
+```sh
+git clone https://github.com/x3cca/caffeinate.git
+cd caffeinate
+./install.sh
 ```
 
-- Restart the shell
-- Enable the extension
+The installer disables the separate Caffeine and Ignore Lid extensions after
+Caffeinate has been installed. A newly installed extension may require signing
+out and back in before GNOME discovers it; the watcher holds a direct fallback
+inhibitor until then, and whenever the extension is unavailable.
 
-## Screenshots & features
+## Updating from Caffeine
 
-### Scroll indicator icon
+The project preserves Caffeine's Git history and layout. The original repository
+is configured as the `upstream` remote:
 
-![Screenshot](screenshots/screenshot-scroll-up.png)![Screenshot](screenshots/screenshot-scroll-down.png)
+```sh
+git fetch upstream
+git merge upstream/master
+```
 
-You can scroll on the indicator icon to enable / disable auto suspend:
+The integration is intentionally small: a separate `lidInhibitor.js` module,
+a few hooks in `extension.js`, one schema key for the watcher, and packaging
+metadata. This keeps upstream merges predictable.
 
-- Scroll up -> Filled cup: Caffeine enabled
-- Scroll down -> Empty cup: Caffeine disabled
+## Credits and license
 
-__Note__: the option "Show status indicator" must be set on "always" (see below).
-
-### Notifications
-
-![Screenshot](screenshots/screenshot-notification-enable.png)
-![Screenshot](screenshots/screenshot-notification-disable.png)
-
-### Timer option
-
-This option enable Caffeine for a given amount of time (similar to Caffeine in LineageOS).
-
-![Screenshot](screenshots/screenshot-timer-off.png)![Screenshot](screenshots/screenshot-timer-on.png)
-
-### Preferences
-
-![Preferences](screenshots/screenshot-prefs.png)
-
-### Command line support
-
-Query the state:
-- `gsettings --schemadir ~/.local/share/gnome-shell/extensions/caffeine@patapon.info/schemas/ get org.gnome.shell.extensions.caffeine cli-toggle`
-
-Enable / disable Caffeine:
-- `gsettings --schemadir ~/.local/share/gnome-shell/extensions/caffeine@patapon.info/schemas/ set org.gnome.shell.extensions.caffeine cli-toggle true`
+Caffeinate is based on Caffeine by eonpatapon and contributors. Lid-switch logic
+is derived from Ignore Lid by mfloto. All three projects are licensed under GPL-2.0.

@@ -1,5 +1,6 @@
-BUNDLE_PATH = "caffeine@patapon.info.zip"
+BUNDLE_PATH = "caffeinate@x3cca.github.com.zip"
 EXTENSION_DIR = "caffeine@patapon.info"
+EXTENSION_UUID = "caffeinate@x3cca.github.com"
 
 all: build install
 
@@ -11,8 +12,9 @@ build:
 	gnome-extensions pack --force --podir=locale \
 	                      --extra-source=preferences/ \
 	                      --extra-source=icons/ \
+	                      --extra-source=lidInhibitor.js \
 	                      --extra-source=mprisMediaPlayer2.js; \
-	mv $(EXTENSION_DIR).shell-extension.zip ../$(BUNDLE_PATH)
+	mv $(EXTENSION_UUID).shell-extension.zip ../$(BUNDLE_PATH)
 
 install:
 	gnome-extensions install $(BUNDLE_PATH) --force

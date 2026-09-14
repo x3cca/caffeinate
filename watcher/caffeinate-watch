@@ -1,0 +1,165 @@
+#!/usr/bin/env bash
+
+set -u
+umask 077
+
+readonly SCHEMA="org.gnome.shell.extensions.caffeine"
+readonly SCHEMA_DIR="${HOME}/.local/share/gnome-shell/extensions/caffeinate@x3cca.github.com/schemas"
+readonly T3_STATE_DB="${HOME}/.t3/userdata/state.sqlite"
+readonly POLL_SECONDS=3
+readonly UNKNOWN_GRACE_SECONDS=60
+
+inhibitor_pid=0
+
+caffeinate_available() {
+    [[ -f "${SCHEMA_DIR}/gschemas.compiled" ]] &&
+        GSETTINGS_SCHEMA_DIR="${SCHEMA_DIR}" \
+            gsettings writable "${SCHEMA}" agent-enabled >/dev/null 2>&1
+}
+
+set_agent_state() {
+    GSETTINGS_SCHEMA_DIR="${SCHEMA_DIR}" \
+        gsettings set "${SCHEMA}" agent-enabled "$1" >/dev/null 2>&1
+}
+
+extension_active() {
+    gnome-extensions info caffeinate@x3cca.github.com 2>/dev/null |
+        grep -q 'State: ACTIVE'
+}
+
+start_fallback_inhibitor() {
+    if (( inhibitor_pid > 0 )) && kill -0 "${inhibitor_pid}" 2>/dev/null; then
+        return
+    fi
+
+    systemd-inhibit \
+        --what=idle:sleep:handle-lid-switch \
+        --mode=block \
+        --who=Caffeinate-watcher \
+        --why='A local agent turn is active' \
+        sleep infinity >/dev/null 2>&1 &
+    inhibitor_pid=$!
+}
+
+stop_fallback_inhibitor() {
+    if (( inhibitor_pid > 0 )); then
+        kill "${inhibitor_pid}" 2>/dev/null || true
+        wait "${inhibitor_pid}" 2>/dev/null || true
+        inhibitor_pid=0
+    fi
+}
+
+codex_cli_running() {
+    local pid arg is_app_server
+    local -a argv
+
+    while read -r pid; do
+        [[ -r "/proc/${pid}/cmdline" ]] || continue
+        argv=()
+        mapfile -d '' -t argv <"/proc/${pid}/cmdline" 2>/dev/null || true
+        is_app_server=0
+
+        for arg in "${argv[@]:1}"; do
+            [[ "${arg}" == "app-server" ]] && is_app_server=1
+        done
+
+        (( is_app_server == 1 )) || return 0
+    done < <(pgrep -u "${UID}" -x codex 2>/dev/null)
+
+    return 1
+}
+
+t3_agent_state() {
+    [[ -r "${T3_STATE_DB}" ]] || {
+        printf 'unknown\n'
+        return 2
+    }
+
+    python3 - "${T3_STATE_DB}" <<'PY'
+import sqlite3
+import sys
+
+try:
+    connection = sqlite3.connect(
+        f"file:{sys.argv[1]}?mode=ro",
+        uri=True,
+        timeout=1.0,
+    )
+    connection.execute("PRAGMA busy_timeout = 1000")
+    active = connection.execute(
+        """
+        SELECT 1
+        FROM projection_thread_sessions AS session
+        JOIN projection_turns AS turn
+          ON turn.thread_id = session.thread_id
+         AND turn.turn_id = session.active_turn_id
+        JOIN provider_session_runtime AS runtime
+          ON runtime.thread_id = session.thread_id
+         AND runtime.provider_name = session.provider_name
+        WHERE session.status = 'running'
+          AND session.active_turn_id IS NOT NULL
+          AND turn.state = 'running'
+          AND turn.completed_at IS NULL
+          AND runtime.status = 'running'
+          AND json_extract(runtime.runtime_payload_json, '$.activeTurnId') = session.active_turn_id
+        LIMIT 1
+        """
+    ).fetchone()
+    connection.close()
+except (OSError, sqlite3.Error):
+    print("unknown")
+    raise SystemExit(2)
+
+print("active" if active else "idle")
+PY
+}
+
+cleanup() {
+    caffeinate_available && set_agent_state false || true
+    stop_fallback_inhibitor
+}
+
+trap cleanup EXIT
+trap 'exit 0' INT TERM
+
+while ! caffeinate_available; do
+    sleep 10
+done
+
+last_state=""
+unknown_since=0
+
+while :; do
+    t3_state=$(t3_agent_state)
+    t3_result=$?
+
+    if codex_cli_running || { (( t3_result == 0 )) && [[ "${t3_state}" == "active" ]]; }; then
+        desired=true
+        unknown_since=0
+    elif (( t3_result == 0 )) && [[ "${t3_state}" == "idle" ]]; then
+        desired=false
+        unknown_since=0
+    else
+        now=$(date +%s)
+        (( unknown_since == 0 )) && unknown_since=${now}
+        if [[ "${last_state}" == "true" ]] && (( now - unknown_since < UNKNOWN_GRACE_SECONDS )); then
+            desired=true
+        else
+            desired=false
+        fi
+    fi
+
+    if [[ "${desired}" != "${last_state}" ]]; then
+        if set_agent_state "${desired}"; then
+            last_state="${desired}"
+        fi
+    fi
+
+    if [[ "${desired}" == "true" ]] && ! extension_active; then
+        start_fallback_inhibitor
+    else
+        stop_fallback_inhibitor
+    fi
+
+    sleep "${POLL_SECONDS}"
+done
